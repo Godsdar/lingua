@@ -5,6 +5,9 @@ where it comes from — and who its relatives are across languages. It draws the
 etymological tree that links a word and its translation to their common ancestor,
 e.g. English **water** ↔ Russian **вода** → Proto-Indo-European `*wódr̥`.
 
+**Live web app:** https://godsdar.github.io/lingua/ — rebuilds and deploys
+automatically on every push to `main`.
+
 ![Lingua desktop app](docs/assets/screenshot-app.png)
 
 One shared, platform-agnostic core (`src/core/`) powers three surfaces:
