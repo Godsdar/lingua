@@ -41,6 +41,23 @@ renderer, где `window.lingua` реализуется не через IPC, а 
 Правило: **зелёный `typecheck` перед коммитом**. Дешёвая страховка от
 расхождения IPC-контракта между ядром, main и UI.
 
+### Docker
+
+Обвязка воспроизводимости: один `Dockerfile` с таргетами.
+
+| Команда | Что делает |
+|---|---|
+| `docker build -t lingua-web .` | собирает статический веб из общего ядра и раздаёт через nginx |
+| `docker run --rm -p 8080:80 lingua-web` | открывает приложение на `http://localhost:8080` |
+| `docker compose up --build web` | то же через compose |
+| `docker build --target ci -t lingua-ci .` | прогоняет `typecheck` + сборку десктопа/расширения/веба (проверка пайплайна) |
+| `docker compose --profile ci run --rm ci` | то же одной командой |
+
+Слои: `build` (node) → `ci` (проверки) → `web` (nginx-alpine). Electron-бинарник
+не скачивается (`ELECTRON_SKIP_BINARY_DOWNLOAD=1`) — веб-сборке он не нужен.
+В CI задача `docker` из `.github/workflows/ci.yml` собирает оба таргета, ловя
+регрессии Dockerfile.
+
 ---
 
 ## 3. CI (GitHub Actions)

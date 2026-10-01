@@ -1,0 +1,14 @@
+node_modules
+out
+release
+dist
+web/dist
+extension/dist
+.git
+.github
+docs
+*.log
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*

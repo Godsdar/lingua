@@ -45,6 +45,14 @@ npm run dev          # desktop app in dev mode (HMR)
 | `npm run dev:web` / `build:web` | web app (dev / `web/dist`) |
 | `npm run dist:mac` / `dist:win` / `dist:linux` | installers → `release/` |
 
+### Docker
+
+```sh
+docker build -t lingua-web .            # build + serve the web app
+docker run --rm -p 8080:80 lingua-web   # open http://localhost:8080
+docker build --target ci -t lingua-ci . # typecheck + build all surfaces
+```
+
 ## Architecture
 
 ```

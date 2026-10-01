@@ -46,3 +46,14 @@ jobs:
         with:
           name: lingua-web
           path: web/dist
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build CI image (typecheck + all surfaces)
+        run: docker build --target ci -t lingua-ci .
+
+      - name: Build web image (nginx)
+        run: docker build --target web -t lingua-web .

@@ -1,0 +1,19 @@
+services:
+  web:
+    build:
+      context: .
+      target: web
+    image: lingua-web:local
+    ports:
+      - '8080:80'
+    restart: unless-stopped
+
+  # Run the pipeline checks in a container:
+  #   docker compose --profile ci run --rm ci
+  ci:
+    profiles: ['ci']
+    build:
+      context: .
+      target: ci
+    image: lingua-ci:local
+    command: ['sh', '-lc', 'npm run typecheck && npm run build && npm run build:ext && npm run build:web']
