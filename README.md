@@ -92,6 +92,7 @@ shown in the app. The source code is MIT (see [LICENSE](LICENSE)).
 
 ## Documentation
 
+- [Agent guide (AGENTS.md)](AGENTS.md)
 - [Design document & UX scenarios](docs/DESIGN.md)
 - [Positioning, hook and growth](docs/POSITIONING.md)
 - [Pipeline, distribution, first users](docs/PIPELINE.md)
