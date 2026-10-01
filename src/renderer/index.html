@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      В dev-режиме Vite/React Refresh вставляют инлайн-скрипты и HMR-websocket,
+      поэтому 'unsafe-inline' и ws: нужны. Для продакшн-сборки политику стоит
+      ужесточить (убрать 'unsafe-inline').
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:"
+    />
+    <title>Lingua</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

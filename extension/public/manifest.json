@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Lingua — Etymology",
+  "version": "0.1.0",
+  "description": "See the etymology and Indo-European roots of any word, and where languages meet.",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Lingua — Etymology"
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "permissions": ["contextMenus", "storage"],
+  "host_permissions": [
+    "https://en.wiktionary.org/*",
+    "https://api.mymemory.translated.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://en.wiktionary.org https://api.mymemory.translated.net https://api-free.deepl.com https://api.deepl.com"
+  }
+}
