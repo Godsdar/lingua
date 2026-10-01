@@ -12,6 +12,36 @@ const MARGIN_X = 56
 const MARGIN_TOP = 40
 const LABEL_PAD = 220
 
+const MAX_WIDTH = 15
+const WIDTH_DECAY = 0.62
+const SEGMENTS = 6
+
+const LEAF_PATH = 'M0,0 C5,-5 14,-4 20,0 C14,4 5,5 0,0 Z'
+const LEAF_ID = 'lingua-leaf'
+
+interface Point { x: number, y: number }
+
+function fnv1a (value: string): number {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
+function mulberry32 (seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const widthAt = (depth: number): number => MAX_WIDTH * Math.pow(WIDTH_DECAY, Math.max(0, depth - 1))
+
 interface Props {
   source: EtymologyNode[]
   target: EtymologyNode[]
@@ -21,13 +51,40 @@ interface Props {
 
 function radiusOf (node: EtyTreeNode): number {
   if (node.isDivergence) return 11
-  if (node.isLeaf) return 9
-  return 6
+  if (node.isLeaf) return 8
+  return 5
+}
+
+function cubicAt (p0: Point, c1: Point, c2: Point, p1: Point, t: number): Point {
+  const u = 1 - t
+  return {
+    x: u * u * u * p0.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p1.x,
+    y: u * u * u * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p1.y
+  }
+}
+
+interface Segment { d: string, w: number }
+
+function taperedSegments (from: Point, to: Point, w0: number, w1: number, bend: number): Segment[] {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const c1: Point = { x: from.x + dx * 0.25 + bend, y: from.y + dy * 0.45 }
+  const c2: Point = { x: to.x - dx * 0.25 + bend, y: to.y - dy * 0.45 }
+  return Array.from({ length: SEGMENTS }, (_, i) => {
+    const a = cubicAt(from, c1, c2, to, i / SEGMENTS)
+    const b = cubicAt(from, c1, c2, to, (i + 1) / SEGMENTS)
+    return {
+      d: `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} L ${b.x.toFixed(2)} ${b.y.toFixed(2)}`,
+      w: w0 + (w1 - w0) * ((i + 0.5) / SEGMENTS)
+    }
+  })
 }
 
 export default function EtymologyTree ({ source, target, sourceName, targetName }: Props) {
   const theme = useTheme()
   const reduce = useReducedMotion() ?? false
+  const wood = theme.palette.mode === 'dark' ? '#8a7355' : '#6b5a45'
+  const leafColor = theme.palette.success.main
 
   const layout = useMemo(() => {
     const data = buildEtymologyTree(source, target)
@@ -59,7 +116,10 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
     }
   }, [source, target])
 
-  const positionOf = (node: { x: number, depth: number }): { x: number, y: number } => ({
+  const seedKey = `${sourceName}|${targetName}|${source[source.length - 1]?.word ?? ''}|${target[target.length - 1]?.word ?? ''}`
+  const base = useMemo(() => fnv1a(seedKey), [seedKey])
+
+  const positionOf = (node: { x: number, depth: number }): Point => ({
     x: node.x + layout.offsetX,
     y: (node.depth - 1) * DY + MARGIN_TOP
   })
@@ -78,25 +138,57 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
           preserveAspectRatio="xMidYMid meet"
           role="img"
           aria-label={`Etymology tree: ${sourceName} and ${targetName}`}
-          style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+          style={{ display: 'block', maxWidth: '100%', height: 'auto', shapeRendering: 'geometricPrecision' }}
         >
+          <defs>
+            <path id={LEAF_ID} d={LEAF_PATH} />
+          </defs>
+
           {layout.links.map((link, index) => {
             const from = positionOf(link.source)
             const to = positionOf(link.target)
-            const midY = (from.y + to.y) / 2
-            const d = `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`
-            const highlight = link.target.data.isDivergence || link.target.data.role === 'trunk'
-            return (
+            const rng = mulberry32(base ^ fnv1a(link.target.data.id))
+            const bend = (rng() - 0.5) * Math.max(26, Math.abs(to.x - from.x) * 0.3)
+            const segments = taperedSegments(from, to, widthAt(link.source.depth), widthAt(link.target.depth), bend)
+            const delay = reduce ? 0 : (link.target.depth - 1) * 0.12
+            return segments.map((segment, segmentIndex) => (
               <motion.path
-                key={`link-${index}`}
-                d={d}
+                key={`link-${index}-${segmentIndex}`}
+                d={segment.d}
                 fill="none"
-                stroke={highlight ? theme.palette.primary.main : theme.palette.divider}
-                strokeWidth={highlight ? 1.84 : 1.5}
+                stroke={wood}
+                strokeWidth={segment.w}
+                strokeLinecap="round"
                 initial={reduce ? false : { pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 0.6, ease: 'easeInOut', delay: reduce ? 0 : (link.target.depth - 1) * 0.08 }}
+                transition={{ duration: reduce ? 0 : 0.45, ease: 'easeOut', delay: delay + segmentIndex * 0.03 }}
               />
+            ))
+          })}
+
+          {layout.nodes.filter(node => node.data.isLeaf).map(node => {
+            const point = positionOf(node)
+            const rng = mulberry32(base ^ fnv1a(node.data.id))
+            const count = 5
+            const leaves = Array.from({ length: count }, () => ({
+              angle: rng() * 360,
+              length: 0.7 + rng() * 0.5,
+              delay: rng() * 0.25
+            }))
+            return (
+              <g key={`leaves-${node.data.id}`} transform={`translate(${point.x},${point.y})`} aria-hidden="true">
+                {leaves.map((leaf, leafIndex) => (
+                  <motion.g
+                    key={leafIndex}
+                    style={{ transformBox: 'fill-box', transformOrigin: '0% 50%' }}
+                    initial={reduce ? false : { scale: 0, rotate: leaf.angle - 60 }}
+                    animate={{ scale: leaf.length, rotate: leaf.angle }}
+                    transition={{ type: 'spring', stiffness: 180, damping: 18, delay: leaf.delay }}
+                  >
+                    <use href={`#${LEAF_ID}`} fill={leafColor} opacity={0.85} transform="translate(5,0)" />
+                  </motion.g>
+                ))}
+              </g>
             )
           })}
 
@@ -126,7 +218,16 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
                     strokeWidth={reconstructed ? 2 : 0}
                     strokeDasharray={reconstructed ? '3 2' : undefined}
                   />
-                  <text x={r + 8} y={-3} textAnchor="start" fontSize={12} fill={theme.palette.text.secondary}>
+                  <text
+                    x={r + 8}
+                    y={-3}
+                    textAnchor="start"
+                    fontSize={12}
+                    fill={theme.palette.text.secondary}
+                    stroke={theme.palette.background.paper}
+                    strokeWidth={3}
+                    style={{ paintOrder: 'stroke' }}
+                  >
                     {data.langName}
                   </text>
                   <text
@@ -137,6 +238,9 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
                     fill={theme.palette.text.primary}
                     fontStyle={reconstructed ? 'italic' : 'normal'}
                     fontWeight={data.isDivergence ? 600 : 400}
+                    stroke={theme.palette.background.paper}
+                    strokeWidth={3}
+                    style={{ paintOrder: 'stroke' }}
                   >
                     {data.word}
                   </text>
