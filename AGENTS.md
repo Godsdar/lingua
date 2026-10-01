@@ -32,6 +32,9 @@ learned by reading the repo, it does not belong here.
   unofficial Google Translate endpoints (`translate.googleapis.com`,
   `clients5.google.com`) — removed on purpose (ADR-003). Default is MyMemory;
   DeepL / LibreTranslate are opt-in via `DEEPL_API_KEY` / `LIBRETRANSLATE_URL`.
+- **Never ship provider keys in client code.** The web and extension bundles are
+  public; `DEEPL_API_KEY` / `LIBRETRANSLATE_URL` must stay server-side (desktop env
+  or a proxy). There is no backend today by design (ADR-009).
 - **Wiktionary requests must stay batched and throttled** (`src/core/wiktionary.ts`:
   `queryBatch`, `getLexicons`, the scheduler). Do not add parallel per-word fetches
   or bypass the min-gap/429 handling — Wikimedia rate-limits hard.
