@@ -63,5 +63,7 @@ learned by reading the repo, it does not belong here.
 
 - Share-card canvas (`ShareCard.tsx`): `await document.fonts.ready` before drawing,
   and reset `ctx.textAlign` at the start of every draw (the context is reused).
-- The etymology graph is currently DOM-based (`EtymologyGraph.tsx`) and is being
-  migrated to SVG per ADR-007 — check before duplicating work.
+- Etymology is rendered by `src/renderer/src/components/EtymologyTree.tsx` (SVG +
+  `motion`, laid out with `d3-hierarchy`). The tree model is built in
+  `src/core/etymologyTree.ts` (`buildEtymologyTree`). Animation must be `motion`
+  (ADR-007), not GSAP or canvas renderers.

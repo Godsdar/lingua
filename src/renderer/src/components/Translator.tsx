@@ -24,7 +24,7 @@ import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded'
 import ShareIcon from '@mui/icons-material/Share'
 import { LANGS } from '../data/languages'
-import EtymologyGraph from './EtymologyGraph'
+import EtymologyTree from './EtymologyTree'
 import ShareCard from './ShareCard'
 import { makeRootId } from '../lib/roots'
 import type { SavedRoot } from '../lib/roots'
@@ -344,10 +344,9 @@ export default function Translator ({ from, to, onFromChange, onToChange, onSave
                     )}
                   </Stack>
 
-                  <EtymologyGraph
+                  <EtymologyTree
                     source={active.etymology}
                     target={active.targetEtymology}
-                    shared={active.sharedAncestor}
                     sourceName={fromName}
                     targetName={toName}
                   />

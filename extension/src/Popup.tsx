@@ -15,7 +15,7 @@ import {
   useMediaQuery
 } from '@mui/material'
 import { getTheme } from '../../src/renderer/src/theme'
-import EtymologyGraph from '../../src/renderer/src/components/EtymologyGraph'
+import EtymologyTree from '../../src/renderer/src/components/EtymologyTree'
 import { analyze } from '../../src/core/analyze'
 import { LANGS } from '../../src/renderer/src/data/languages'
 import type { LangCode, WordAnalysis } from '@shared/types'
@@ -162,10 +162,9 @@ export default function Popup () {
                 <Typography variant="body2" color="text.secondary">→ {active.gloss}</Typography>
               )}
             </Stack>
-            <EtymologyGraph
+            <EtymologyTree
               source={active.etymology}
               target={active.targetEtymology}
-              shared={active.sharedAncestor}
               sourceName={langName(from)}
               targetName={langName(to)}
             />
