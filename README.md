@@ -1,102 +1,36 @@
 # Lingua
 
-**Every word has a family.** Lingua is an etymology explorer: type a word and see
-where it comes from — and who its relatives are across languages. It draws the
-etymological tree that links a word and its translation to their common ancestor,
-e.g. English **water** ↔ Russian **вода** → Proto-Indo-European `*wódr̥`.
+An etymology explorer: type a word and see where it came from and which words share the same ancestor.
 
-**Live web app:** https://godsdar.github.io/lingua/ — rebuilds and deploys
-automatically on every push to `main`.
+![Lingua web app](docs/assets/screenshot-app.png)
 
-![Lingua desktop app](docs/assets/screenshot-app.png)
+Live demo: https://godsdar.github.io/lingua/
 
-One shared, platform-agnostic core (`src/core/`) powers three surfaces:
+## What it does
 
-| Surface | Status | Notes |
-|---|---|---|
-| **Web** (React SPA, no server) | working | `npm run build:web` → `web/dist` |
-| **Browser extension** (Chrome MV3) | working | `npm run build:ext` → `extension/dist` |
-| **Desktop** (Electron) | working | `npm run dist:mac` / `dist:win` / `dist:linux` |
+- Translates as you type, with no button.
+- Shows a word-by-word analysis: part of speech, gloss, alternatives.
+- Builds an etymological tree that links two words to their shared ancestor.
+- Runs one shared core across a web app, a Chrome extension and an Electron desktop app.
+- Saves a local "roots discovered" list and exports a tree as an image.
 
-## Features
+## Stack
 
-- **Instant translation** as you type (no button, debounced).
-- **Word-by-word analysis**: part of speech, target-language gloss, alternatives.
-- **Etymological tree**: source word ↔ translation, meeting at their shared ancestor.
-- **Static Indo-European family tree**, with the app's four languages highlighted.
-- **My roots**: a local “roots discovered” collection (no account).
-- **Share**: export the tree as an image (PNG) or copy a permalink.
+TypeScript, React, MUI, d3-hierarchy, Electron, Vite, `node --test`.
 
-![Share card](docs/assets/screenshot-share.png)
+## Run it
 
-## Quick start
-
-```sh
+```bash
 npm ci
-npm run dev          # desktop app in dev mode (HMR)
+npm run dev        # desktop app in dev mode
+npm test           # tree builder tests
+npm run build:web  # web build
 ```
 
-## Commands
+## What was hard
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Electron + Vite HMR |
-| `npm run typecheck` | types for node and web contexts |
-| `npm run build` | production desktop build |
-| `npm run preview` | run the built desktop app |
-| `npm run build:ext` | build the browser extension → `extension/dist` |
-| `npm run dev:web` / `build:web` | web app (dev / `web/dist`) |
-| `npm run dist:mac` / `dist:win` / `dist:linux` | installers → `release/` |
-
-### Docker
-
-```sh
-docker build -t lingua-web .            # build + serve the web app
-docker run --rm -p 8080:80 lingua-web   # open http://localhost:8080
-docker build --target ci -t lingua-ci . # typecheck + build all surfaces
-```
-
-## Architecture
-
-```
-src/core/        shared core (etymology, translation, analysis) — web APIs only
-src/main/        Electron main + IPC
-src/preload/     contextBridge
-src/renderer/    UI (React + MUI), reused by the web app and extension
-extension/       Chrome MV3 (popup + context menu)
-web/             web entry (browser adapter for the core, no server)
-docs/            DESIGN.md, PIPELINE.md, POSITIONING.md, decisions/ (ADR)
-```
-
-The core runs unchanged in Node (desktop) and in the browser (web, extension).
-Wiktionary supports CORS (`origin=*`) and MyMemory is CORS-enabled, so no backend
-is required.
-
-## Install the unsigned macOS build
-
-The app is not code-signed yet. After downloading the `.dmg` and moving it to
-`/Applications`, clear the quarantine flag:
-
-```sh
-xattr -dr com.apple.quarantine /Applications/Lingua.app
-```
-
-## Better translation (optional)
-
-By default translations come from Wiktionary with a MyMemory fallback. For higher
-quality set one of these environment variables: `DEEPL_API_KEY` or
-`LIBRETRANSLATE_URL`.
-
-## Data & license
-
-Etymology, part of speech and translations come from
-[English Wiktionary](https://en.wiktionary.org) under **CC BY-SA**; attribution is
-shown in the app. The source code is MIT (see [LICENSE](LICENSE)).
-
-## Documentation
-
-- [Agent guide (AGENTS.md)](AGENTS.md)
-- [Design document & UX scenarios](docs/DESIGN.md)
-- [Positioning, hook and growth](docs/POSITIONING.md)
-- [Pipeline, distribution, first users](docs/PIPELINE.md)
-- [Architecture decisions (ADR)](docs/decisions/)
+Keeping one core that runs unchanged in Node (desktop) and in the browser (web,
+extension) forced every platform detail out of the core and behind a small
+adapter. The tree builder was the other tricky part: shared ancestors mean the
+two lineages merge into one trunk and split again, and the tests now pin that
+shape, the word normalisation and the unrelated-words case.
