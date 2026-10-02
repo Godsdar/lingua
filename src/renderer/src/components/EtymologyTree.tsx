@@ -9,7 +9,8 @@ import type { EtymologyNode } from '@shared/types'
 const DX = 200
 const DY = 92
 const MARGIN_X = 56
-const MARGIN_TOP = 40
+const MARGIN_TOP = 44
+const MARGIN_BOTTOM = 86
 const LABEL_PAD = 220
 
 const MAX_WIDTH = 15
@@ -95,7 +96,7 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
 
     let minX = Infinity
     let maxX = -Infinity
-    let maxDepth = 0
+    let maxDepth = 1
     for (const node of visible) {
       minX = Math.min(minX, node.x)
       maxX = Math.max(maxX, node.x)
@@ -104,7 +105,8 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
 
     const offsetX = visible.length > 0 ? MARGIN_X - minX : 0
     const width = (visible.length > 0 ? maxX - minX : 0) + MARGIN_X * 2 + LABEL_PAD
-    const height = Math.max(maxDepth - 0, 1) * DY + MARGIN_TOP * 2
+    // Depth 1 (oldest) sits at the bottom, deepest (modern) at the top.
+    const height = (maxDepth - 1) * DY + MARGIN_TOP + MARGIN_BOTTOM
 
     return {
       nodes: visible,
@@ -112,6 +114,7 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
       width,
       height,
       offsetX,
+      maxDepth,
       shared: data.children.length === 1
     }
   }, [source, target])
@@ -121,8 +124,13 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
 
   const positionOf = (node: { x: number, depth: number }): Point => ({
     x: node.x + layout.offsetX,
-    y: (node.depth - 1) * DY + MARGIN_TOP
+    y: (layout.maxDepth - node.depth) * DY + MARGIN_TOP
   })
+
+  const roots = layout.nodes.filter(node => node.data.isRoot)
+  const rootBaseline = roots.length > 0
+    ? Math.max(...roots.map(node => positionOf(node).y)) + 34
+    : layout.height - MARGIN_BOTTOM + 20
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -144,6 +152,45 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
             <path id={LEAF_ID} d={LEAF_PATH} />
           </defs>
 
+          {/* ground line */}
+          <line
+            x1={0}
+            x2={layout.width}
+            y1={rootBaseline}
+            y2={rootBaseline}
+            stroke={theme.palette.divider}
+            strokeWidth={1.5}
+            strokeDasharray="2 5"
+          />
+
+          {/* roots */}
+          {roots.map(node => {
+            const point = positionOf(node)
+            const rng = mulberry32(base ^ fnv1a(`root-${node.data.id}`))
+            const rootStrokes = [-1, 0, 1].map(direction => {
+              const spread = direction * (16 + rng() * 12)
+              const end: Point = { x: point.x + spread, y: point.y + 40 + rng() * 16 }
+              const segments = taperedSegments(point, end, 6, 1.6, spread * 0.2)
+              return segments
+            })
+            return (
+              <g key={`root-${node.data.id}`} aria-hidden="true">
+                {rootStrokes.flat().map((segment, index) => (
+                  <path
+                    key={index}
+                    d={segment.d}
+                    fill="none"
+                    stroke={wood}
+                    strokeWidth={segment.w}
+                    strokeLinecap="round"
+                    opacity={0.9}
+                  />
+                ))}
+              </g>
+            )
+          })}
+
+          {/* branches */}
           {layout.links.map((link, index) => {
             const from = positionOf(link.source)
             const to = positionOf(link.target)
@@ -166,11 +213,11 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
             ))
           })}
 
+          {/* leaves (crown) */}
           {layout.nodes.filter(node => node.data.isLeaf).map(node => {
             const point = positionOf(node)
             const rng = mulberry32(base ^ fnv1a(node.data.id))
-            const count = 5
-            const leaves = Array.from({ length: count }, () => ({
+            const leaves = Array.from({ length: 5 }, () => ({
               angle: rng() * 360,
               length: 0.7 + rng() * 0.5,
               delay: rng() * 0.25
@@ -192,6 +239,7 @@ export default function EtymologyTree ({ source, target, sourceName, targetName 
             )
           })}
 
+          {/* nodes + labels */}
           {layout.nodes.map(node => {
             const data = node.data
             const pos = positionOf(node)
