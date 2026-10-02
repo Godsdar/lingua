@@ -56,6 +56,16 @@ docker run --rm -p 8080:80 lingua-web   # open http://localhost:8080
 docker build --target ci -t lingua-ci . # typecheck + build all surfaces
 ```
 
+## Testing
+
+```sh
+npm test     # node --test — etymology tree building (src/core/etymologyTree.test.ts)
+```
+
+The tree builder is a pure function, so it is tested without a browser or network:
+shared-ancestor trunk/divergence shape, word normalization (`*` and case), and the
+unrelated-words case.
+
 ## Architecture
 
 ```
@@ -86,6 +96,19 @@ xattr -dr com.apple.quarantine /Applications/Lingua.app
 By default translations come from Wiktionary with a MyMemory fallback. For higher
 quality set one of these environment variables: `DEEPL_API_KEY` or
 `LIBRETRANSLATE_URL`.
+
+## Development notes (AI-assisted)
+
+Large parts of the first draft were generated with AI agents, then reviewed and
+corrected by hand against real Wiktionary data:
+
+- Work starts from a written design and ADRs (`docs/DESIGN.md`, `docs/decisions/`)
+  before any code is generated.
+- The shared core (`src/core/`) is kept free of Electron/browser APIs so the same
+  code runs in Node, the browser and the extension.
+- Verification is automated: `npm run typecheck` plus `npm test` on the pure tree
+  builder, and CI builds all three surfaces. Visual/UX behaviour is checked in the
+  running app.
 
 ## Data & license
 
